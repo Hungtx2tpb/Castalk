@@ -45,6 +45,38 @@ public class AppHooks extends BasePage {
 //        }
 //    }
 
+    @Before(order = 0)
+    public void closeAppBeforeScenario() {
+        try {
+            AppiumDriver appium = getAppiumDriver();
+
+            if (appium == null) {
+                logger.info("[Hook] driver null; skip");
+                return;
+            }
+            if (appium.getSessionId() == null) {
+                logger.info("[Hook] session closed; skip");
+                return;
+            }
+            String platform = String.valueOf(appium.getCapabilities().getCapability("platformName")).toLowerCase();
+            String appId = platform.contains("android")
+                    ? String.valueOf(appium.getCapabilities().getCapability("appPackage"))
+                    : String.valueOf(appium.getCapabilities().getCapability("bundleId"));
+            if (appId == null || appId.isBlank()) {
+                logger.info("[Hook] no appId; skip");
+                return;
+            }
+            if(platform.equalsIgnoreCase("iOS")){
+                ((InteractsWithApps) appium).terminateApp(appId);
+                logger.info("[Hook] terminated before scenario: {}", appId);
+                ((InteractsWithApps) appium).activateApp(appId);
+                logger.info("[Hook] re-activated before scenario: {}", appId);
+            }
+        } catch (Exception e) {
+            logger.warn("[Hook] Failed in @Before: {}", e.getMessage());
+        }
+    }
+
     @After(order = 0)
     public void terminateAfterScenario() {
         try {
